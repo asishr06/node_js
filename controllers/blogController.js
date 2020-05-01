@@ -1,6 +1,10 @@
 const express = require ('express');
 const mongoose = require('mongoose');
 const shortid = require('shortid');
+const moment = require('../libs/timeLib')
+const response = require('../libs/responseLib')
+const check = require('../libs/checkLib')
+const logger = require('../libs/loggerLib')
 
 //importing the model here
 const BlogModel= mongoose.model('Blog')
@@ -13,12 +17,18 @@ let getAllBlog =(req,res) =>
         .exec((err,result)=> {
             if(err){
                 console.log(err);
-                res.send(err);
-            }else if(check.isEmpty(result == undefined||result==''||result==null)) {
-                console,log('no blog found');
-                res.send("No Blog Found")
+                logger.error(err.message,'BlogController:AllBlog',10)
+                let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                res.send(apiResponse);
+            }else if(check.isEmpty(result)) {
+                console.log('no blog found');
+                logger.info('No Blog Found','BlogController:AllBlog')
+                let apiResponse = response.generate(true,'No Blog  found',404,null);
+                res.send(apiResponse);
             }else {
-                res.send(result)
+                logger.info('All Blog Details Found','Blog Controller:getAllBlog',0);
+                let apiResponse = response.generate(false,'All Blog Details Found',200,result);
+                res.send(apiResponse)
             }
         })
 }//end get all blog
@@ -27,17 +37,22 @@ let getAllBlog =(req,res) =>
 
 let viewByBlogId =(req,res) => {
     console.log(req.user)
-
     BlogModel.findOne({'blogId':req.params.blogId},(err,result) =>{
 
         if(err) {
             console.log(err)
-            res.send(err)
-        }else if (result == undefined||result ==null||result==''){
-            console,log('no blog found');
-            res.send("No Blog Found")
+            logger.error(`Error Occured : ${err}`, 'Database', 10)
+            let apiResponse = response.generate(true,'failed to find blog details',500,null);
+            res.send(apiResponse);
+        }else if (check.isEmpty(result)){
+            logger.info('no blog found','BlogController:ViewByBlogId',5);
+            logger.info('No Blog Found','Database',5)
+            let apiResponse = response.generate(true,'No Blog  found',404,null);
+            res.send(apiResponse);
         }else {
-            res.send(result)
+            logger.info("Blog found successfully","BlogController:ViewBlogById",5)
+            let apiResponse = response.generate(false,'Blog Details Found',200,result);
+            res.send(apiResponse)
         }
     } )
 }//end of get blog by id
@@ -45,134 +60,217 @@ let viewByBlogId =(req,res) => {
 
 let viewByAuthor=(req,res) =>{
 
-    BlogModel.findOne({'author':req.params.author},(err,result) =>{
-        if(err){
-            console.log(err)
-            res.send(err)
-        }else if (result == undefined||result ==null||result==''){
-            console,log('no blog found');
-            res.send("No Blog Found")
-        }else {
-            res.send(result)
+    if (check.isEmpty(req.params.author)) {
 
-        }
-    })
+        console.log('author should be passed')
+        let apiResponse = response.generate(true, 'author is missing', 403, null)
+        res.send(apiResponse)
+    }else {    
+        BlogModel.findOne({'author':req.params.author},(err,result) =>{
+            if(err){
+                console.log(err)
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                res.send(apiResponse);
+            }else if (check.isEmpty(result)){
+                console,log('no blog found');
+                let apiResponse = response.generate(true,'No Blog  found',404,null);
+                res.send(apiResponse);
+            }else {
+                let apiResponse = response.generate(false,'Blog Details Found',200,result);
+                res.send(apiResponse)
+
+            }
+        })
+    } 
 }
 
 let viewByCategory=(req,res) =>{
-    BlogModel.findOne({'category':req.params.category},(err,result)=>{
-        if(err){
-            console.log(err)
-            res.send(err)
-        }else if (result == undefined||result ==null||result==''){
-            console,log('no blog found');
-            res.send("No Blog Found")
-        }else {
-            res.send(result)
+    if (check.isEmpty(req.params.categoryId)) {
 
-        }
-    })
+        console.log('categoryId should be passed')
+        let apiResponse = response.generate(true, 'CategoryId is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+        BlogModel.findOne({'category':req.params.category},(err,result)=>{
+            if(err){
+                console.log(err)
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                res.send(apiResponse);
+            }else if (check.isEmpty(result)){
+                console,log('no blog found');
+                let apiResponse = response.generate(true,'No Blog  found',404,null);
+                res.send(apiResponse);
+            }else {
+                let apiResponse = response.generate(false,'Blog Details Found',200,result);
+                res.send(apiResponse)
+
+            }
+       })
+    }   
 }
     /*edited by Author*/
 let editBlog =(req,res) => {
-    let options =req.body;
-    console.log(options);
+    
+    if (check.isEmpty(req.params.blogId)) {
 
-    BlogModel.update({'blogId':req.params.blogId},options,{multi:true}).exec((err,result)=> {
+        console.log('blogId should be passed')
+        let apiResponse = response.generate(true, 'blogId is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+            let options =req.body;
+            console.log(options);
 
-        if(err){
-            console.log(err)
-            res.send(err)
-        }else if (result == undefined||result ==null||result==''){
-            console,log('no blog found');
-            res.send("No Blog Found")
-        }else {
-            res.send(result)
+            BlogModel.update({'blogId':req.params.blogId},options,{multi:true}).exec((err,result)=> {
 
-        }
-    })    
+                if(err){
+                    console.log(err)
+                    logger.error(`Error Occured : ${err}`, 'Database', 10)
+                    let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                    res.send(apiResponse);
+                }else if (check.isEmpty(result)){
+                    console.log('no blog found');
+                    let apiResponse = response.generate(true,'No Blog  found',404,null);
+                    res.send(apiResponse);
+                }else {
+                    let apiResponse = response.generate(false,'Blog edit successfull',200,result);
+                    res.send(apiResponse)
+
+                }
+            })
+        }       
 }
 
 /* function to delete the assignment collection.
  */
 let deleteBlog = (req, res) => {
-    BlogModel.remove({ 'blogId': req.params.blogId }, (err, result) => {
-        if (err) {
-            console.log(err)
-            res.send(err)
-        } else if (result == undefined || result == null || result == '') {
-            console.log('No Blog Found')
-            res.send("No Blog Found")
-        } else {
-            res.send(result)
 
-        }
-    })
+    if (check.isEmpty(req.params.blogId)) {
+
+        console.log('blogId should be passed')
+        let apiResponse = response.generate(true, 'blogId is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+            BlogModel.remove({ 'blogId': req.params.blogId }, (err, result) => {
+                if (err) {
+                    console.log(err)
+                    logger.error(`Error Occured : ${err}`, 'Database', 10)
+                    let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                    res.send(apiResponse);
+                } else if (check.isEmpty(result)) {
+                    let apiResponse = response.generate(true,'No Blog  found',404,null);
+                    res.send(apiResponse);
+                } else {
+                    let apiResponse = response.generate(false,'Blog deletion successfull',200,result);
+                    res.send(apiResponse)
+
+                }
+            })
+        }   
 }
 
 /*creating a blog*/
 let createBlog = (req, res) => {
-    var today = Date.now()
-    let blogId = shortid.generate()
+    let blogCreationFunction = () => {
+        return new Promise((resolve, reject) => {
+            console.log(req.body)
+            if (check.isEmpty(req.body.title) || check.isEmpty(req.body.description) || check.isEmpty(req.body.blogBody) || check.isEmpty(req.body.category)) {
 
-    let newBlog = new BlogModel({
+                console.log("403, forbidden request");
+                let apiResponse = response.generate(true, 'required parameters are missing', 403, null)
+                reject(apiResponse)
+            } else {
+                        var today = Date.now()
+                        let blogId = shortid.generate()
 
-        blogId: blogId,
-        title: req.body.title,
-        description: req.body.description,
-        bodyHtml: req.body.blogBody,
-        isPublished: true,
-        category: req.body.category,
-        author: req.body.fullName,
-        created: today,
-        lastModified: today
-    }) // end new blog model
-   
+                        let newBlog = new BlogModel({
 
-    let tags = (req.body.tags != undefined && req.body.tags != null && req.body.tags != '') ? req.body.tags.split(',') : []
-    newBlog.tags = tags
+                            blogId: blogId,
+                            title: req.body.title,
+                            description: req.body.description,
+                            bodyHtml: req.body.blogBody,
+                            isPublished: true,
+                            category: req.body.category,
+                            author: req.body.fullName,
+                            created: today,
+                            lastModified: today
+                        }) // end new blog model
+                    
 
-    newBlog.save((err, result) => {
-        if (err) {
-            console.log(err)
-            res.send(err)
-        } else {
-            res.send(result)
+                        let tags = (req.body.tags != undefined && req.body.tags != null && req.body.tags != '') ? req.body.tags.split(',') : []
+                        newBlog.tags = tags
 
-        }
-    }) // end new blog save
+                        newBlog.save((err, result) => {
+                            if (err) {
+                                console.log(err)
+                                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                                let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                                res.send(apiResponse);
+                            } else {
+                                console.log('Success in blog creation')
+                                    resolve(result)
 
+                            }
+                        })  // end new blog save
+            }    
+        })    
+    }
+
+    // making promise call.
+    blogCreationFunction()
+        .then((result) => {
+            let apiResponse = response.generate(false, 'Blog Created successfully', 200, result)
+            res.send(apiResponse)
+        })
+        .catch((error) => {
+            console.log(error)
+            res.send(error)
+        })
 }
 
 /*function to increase views of a blog.
  */
 let increaseBlogView = (req, res) => {
 
-    BlogModel.findOne({ 'blogId': req.params.blogId }, (err, result) => {
+    if (check.isEmpty(req.params.blogId)) {
+    
+        console.log('blogId should be passed')
+        let apiResponse = response.generate(true, 'blogId is missing', 403, null)
+        res.send(apiResponse)
+    } 
+     else {
 
-        if (err) {
-            console.log(err)
-            res.send(err)
-        } else if (result == undefined || result == null || result == '') {
-            console.log('No Blog Found')
-            res.send("No Blog Found")
-        } else {
-            
-            result.views += 1;
-            result.save(function (err, result) {
-                if (err) {
-                    console.log(err)
-                    res.send(err)
-                }
-                else {
-                    console.log("Blog updated successfully")
-                    res.send(result)
+                BlogModel.findOne({ 'blogId': req.params.blogId }, (err, result) => {
 
-                }
-            });// end result
+                    if (err) {
+                        console.log(err)
+                        logger.error(`Error Occured : ${err}`, 'Database', 10)
+                        let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                        res.send(apiResponse);
+                    } else if (check.isEmpty(result)) {
+                        console.log('No Blog Found')
+                        let apiResponse = response.generate(true,'No Blog  found',404,null);
+                        res.send(apiResponse);
+                    } else {
+                        
+                        result.views += 1;
+                        result.save(function (err, result) {
+                            if (err) {
+                                console.log(err)
+                                let apiResponse = response.generate(true,'failed to find blog details',500,null);
+                                res.send(apiResponse);
+                            }
+                            else {
+                                console.log("Blog updated successfully")
+                                let apiResponse = response.generate(false,'Blog Updation successfull',200,result);
+                                res.send(apiResponse)
 
-        }
-    })
+                            }
+                        });// end result
+                    }
+               })
+     }   
 }
 
 /* let testRoute =(req,res) =>{
